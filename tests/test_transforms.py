@@ -12,6 +12,7 @@ from fakesnow.transforms import (
     create_database,
     datediff_string_literal_timestamp_cast,
     dateadd_date_cast,
+    dateadd_string_literal_timestamp_cast,
     describe_table,
     drop_schema_cascade,
     extract_comment_on_columns,
@@ -267,6 +268,22 @@ def test_dateadd_date_cast() -> None:
         .transform(dateadd_date_cast)
         .sql(dialect="duckdb")
         == "SELECT col + INTERVAL 3 YEAR AS D"
+    )
+
+
+def test_dateadd_string_literal_timestamp_cast() -> None:
+    assert (
+        sqlglot.parse_one("SELECT DATEADD(DAY, 3, '2023-03-03') as D", read="snowflake")
+        .transform(dateadd_string_literal_timestamp_cast)
+        .sql(dialect="duckdb")
+        == "SELECT CAST('2023-03-03' AS TIMESTAMP) + INTERVAL 3 DAY AS D"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT DATEADD(MONTH, 3, '2023-03-03') as D", read="snowflake")
+        .transform(dateadd_string_literal_timestamp_cast)
+        .sql(dialect="duckdb")
+        == "SELECT CAST('2023-03-03' AS TIMESTAMP) + INTERVAL 3 MONTH AS D"
     )
 
 
