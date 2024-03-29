@@ -954,6 +954,22 @@ def to_date(expression: exp.Expression) -> exp.Expression:
     return expression
 
 
+def _to_decimal(expression: exp.Expression, cast_node: type[exp.Cast]) -> exp.Expression:
+    expressions: list[exp.Expression] = expression.expressions
+
+    if len(expressions) > 1 and expressions[1].is_string:
+        # see https://docs.snowflake.com/en/sql-reference/functions/to_decimal#arguments
+        raise NotImplementedError(f"{expression.this} with format argument")
+
+    precision = expressions[1] if len(expressions) > 1 else exp.Literal(this="38", is_string=False)
+    scale = expressions[2] if len(expressions) > 2 else exp.Literal(this="0", is_string=False)
+
+    return cast_node(
+        this=expressions[0],
+        to=exp.DataType(this=exp.DataType.Type.DECIMAL, expressions=[precision, scale], nested=False, prefix=False),
+    )
+
+
 def _get_to_number_args(e: exp.ToNumber) -> tuple[exp.Expression | None, exp.Expression | None, exp.Expression | None]:
     arg_format = e.args.get("format")
     arg_precision = e.args.get("precision")
@@ -995,22 +1011,6 @@ def _get_to_number_args(e: exp.ToNumber) -> tuple[exp.Expression | None, exp.Exp
                 _scale = arg_scale
 
     return _format, _precision, _scale
-
-
-def _to_decimal(expression: exp.Expression, cast_node: type[exp.Cast]) -> exp.Expression:
-    expressions: list[exp.Expression] = expression.expressions
-
-    if len(expressions) > 1 and expressions[1].is_string:
-        # see https://docs.snowflake.com/en/sql-reference/functions/to_decimal#arguments
-        raise NotImplementedError(f"{expression.this} with format argument")
-
-    precision = expressions[1] if len(expressions) > 1 else exp.Literal(this="38", is_string=False)
-    scale = expressions[2] if len(expressions) > 2 else exp.Literal(this="0", is_string=False)
-
-    return cast_node(
-        this=expressions[0],
-        to=exp.DataType(this=exp.DataType.Type.DECIMAL, expressions=[precision, scale], nested=False, prefix=False),
-    )
 
 
 def to_decimal(expression: exp.Expression) -> exp.Expression:
