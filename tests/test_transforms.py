@@ -903,6 +903,7 @@ def test_to_number_decimal() -> None:
         )
 
 
+def test_to_number_numeric() -> None:
     assert (
         sqlglot.parse_one("SELECT to_numeric('100')", read="snowflake").transform(to_decimal).sql(dialect="duckdb")
         == "SELECT CAST('100' AS DECIMAL(38, 0))"
