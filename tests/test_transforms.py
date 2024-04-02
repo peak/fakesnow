@@ -25,6 +25,7 @@ from fakesnow.transforms import (
     integer_precision,
     json_extract_cased_as_varchar,
     json_extract_cast_as_varchar,
+    json_extract_eq_string_literal,
     json_extract_in_string_literals,
     json_extract_precedence,
     object_construct,
@@ -631,6 +632,49 @@ def test_values_columns() -> None:
     assert (
         sqlglot.parse_one("INSERT INTO cities VALUES ('Amsterdam', 1)").transform(values_columns).sql()
         == "INSERT INTO cities VALUES ('Amsterdam', 1)"
+    )
+
+
+def test_json_extract_eq_string_literal() -> None:
+    print()
+    assert (
+        sqlglot.parse_one(
+            "SELECT col.data:field = 'value'",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_string_literal)
+        .sql(dialect="duckdb")
+        == "SELECT (col.data ->> '$.field') = 'value'"
+    )
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT col.data:field = somecol",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_string_literal)
+        .sql(dialect="duckdb")
+        == "SELECT col.data -> '$.field' = somecol"
+    )
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT col.data:field = 5",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_string_literal)
+        .sql(dialect="duckdb")
+        == "SELECT col.data -> '$.field' = 5"
+    )
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT 'value' = col.data:field",
+            read="snowflake",
+        )
+        .transform(json_extract_eq_string_literal)
+        .sql(dialect="duckdb")
+        == "SELECT 'value' = (col.data ->> '$.field')"
     )
 
 

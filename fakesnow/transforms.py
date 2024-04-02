@@ -1216,6 +1216,51 @@ def show_keys(
     return expression
 
 
+def json_extract_eq_string_literal(expression: exp.Expression) -> exp.Expression:
+    """Convert JSON extract result to VARCHAR when compared to a string literal.
+
+    DuckDB tries to cast literal string to JSON;
+        SELECT TO_JSON({'K': 10}) AS D, ( D -> '$.k') = 'SomeString' AS EQ
+            Error: Conversion Error: Malformed JSON at byte 0 of input: unexpected character.  Input: SomeString
+
+    Snowflake;
+        SELECT {'k': 'SomeString'} AS d, d:k = 'SomeString' AS EQ;
+            D: {"k": 'SomeString'}
+            EQ: TRUE
+    """
+
+    def is_json_extract(expression: exp.Expression) -> bool:
+        return (
+            isinstance(expression, exp.JSONExtract)
+            and (je := expression)
+            and (path := je.expression)
+            and isinstance(path, exp.JSONPath)
+        )
+
+    def to_json_extract_scalar(expression: exp.JSONExtract) -> exp.Expression:
+        return exp.JSONExtractScalar(this=expression.this, expression=expression.expression)
+
+    if not isinstance(expression, exp.EQ):
+        return expression
+
+    left = expression.left
+    right = expression.right
+
+    # <json-extact> = <string-literal>
+    if is_json_extract(left) and isinstance(right, exp.Literal) and right.is_string:
+        json_extract_scalar = exp.Paren(this=to_json_extract_scalar(cast(exp.JSONExtract, left)))
+
+        return exp.EQ(this=json_extract_scalar, expression=right)
+
+    # <string-literal> = <json-extact>
+    elif is_json_extract(right) and isinstance(left, exp.Literal) and left.is_string:
+        json_extract_scalar = exp.Paren(this=to_json_extract_scalar(cast(exp.JSONExtract, right)))
+
+        return exp.EQ(this=left, expression=json_extract_scalar)
+
+    return expression
+
+
 def json_extract_in_string_literals(expression: exp.Expression) -> exp.Expression:
     """Snowflake does implicit casting on JSON extract value on an IN caluse;
 
@@ -1290,3 +1335,5 @@ def json_extract_in_string_literals(expression: exp.Expression) -> exp.Expressio
 
     json_extract_scalar = exp.JSONExtractScalar(this=je.this, expression=path)
     return exp.In(this=json_extract_scalar, expressions=expression.expressions)
+
+

@@ -1460,6 +1460,49 @@ def test_json_extract_in_string_literals(dcur: snowflake.connector.cursor.Snowfl
     ]
 
 
+def test_json_extract_eq_string_literal(dcur: snowflake.connector.cursor.DictCursor):
+    dcur.execute("""SELECT PARSE_JSON('{"a": "hello"}') AS d, d:a = 'hello' AS r""")
+
+    rows = dcur.fetchall()
+    assert dindent(rows) == [
+        {
+            "D": '{\n  "a": "hello"\n}',
+            "R": True,
+        }
+    ]
+
+    dcur.execute("""SELECT PARSE_JSON('{"a": "100"}') AS d, d:a = 'hello' AS r, d:a = '100' AS r2, d:a = 100 AS r3""")
+    rows = dcur.fetchall()
+    assert dindent(rows) == [
+        {
+            "D": '{\n  "a": "100"\n}',
+            "R": False,
+            "R2": True,
+            "R3": True,
+        }
+    ]
+
+    dcur.execute("""SELECT 'hello' = PARSE_JSON('{"a": "hello"}'):a AS r""")
+    rows = dcur.fetchall()
+    assert dindent(rows) == [
+        {
+            "R": True,
+        }
+    ]
+
+    dcur.execute(
+        """SELECT 'hello' = PARSE_JSON('{"a": "100"}'):a AS r, '100' = PARSE_JSON('{"a": "100"}'):a AS r2, 100 = PARSE_JSON('{"a": "100"}'):a AS r3"""
+    )
+    rows = dcur.fetchall()
+    assert dindent(rows) == [
+        {
+            "R": False,
+            "R2": True,
+            "R3": True,
+        }
+    ]
+
+
 def indent(rows: Sequence[tuple] | Sequence[dict]) -> list[tuple]:
     # indent duckdb json strings tuple values to match snowflake json strings
     assert isinstance(rows[0], tuple)
