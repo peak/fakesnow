@@ -10,9 +10,10 @@ from fakesnow.transforms import (
     array_agg_within_group,
     array_size,
     create_database,
-    datediff_string_literal_timestamp_cast,
+    current_timestamp,
     dateadd_date_cast,
     dateadd_string_literal_timestamp_cast,
+    datediff_string_literal_timestamp_cast,
     describe_table,
     drop_schema_cascade,
     extract_comment_on_columns,
@@ -632,6 +633,36 @@ def test_use() -> None:
     assert (
         sqlglot.parse_one("use schema foo.bar").transform(set_schema, current_database="marts").sql()
         == "SET schema = 'foo.bar'"
+    )
+
+
+def test_current_timestamp() -> None:
+    assert (
+        sqlglot.parse_one("SELECT current_timestamp", read="snowflake")
+        .transform(current_timestamp)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(CURRENT_TIMESTAMP AS TIMESTAMP)"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT current_timestamp()", read="snowflake")
+        .transform(current_timestamp)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(CURRENT_TIMESTAMP AS TIMESTAMP)"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT DATEADD(DAY, -7, current_timestamp)", read="snowflake")
+        .transform(current_timestamp)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(CURRENT_TIMESTAMP AS TIMESTAMP) + INTERVAL (-7) DAY"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT current_timestamp::DATE", read="snowflake")
+        .transform(current_timestamp)
+        .sql(dialect="duckdb")
+        == "SELECT CAST(CAST(CURRENT_TIMESTAMP AS TIMESTAMP) AS DATE)"
     )
 
 
