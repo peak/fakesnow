@@ -1070,6 +1070,23 @@ def to_timestamp(expression: exp.Expression) -> exp.Expression:
             this=expression,
             to=exp.DataType(this=exp.DataType.Type.TIMESTAMP, nested=False, prefix=False),
         )
+
+    # NOTE(selman): sqlglot parses `TO_TIMESTAMP(<identifier>)` as an Anonymous
+    # node. In our use case with `TO_TIMESTAMP(<identifier>)`, the identifier
+    # value is always a Unix epoch seconds value. We can transpile it to a
+    # UnixToTime node.
+    if (
+        isinstance(expression, exp.Anonymous)
+        and isinstance(expression.this, str)
+        and expression.this.upper() == "TO_TIMESTAMP"
+        and len(expression.expressions) == 1
+    ):
+        unix_to_time = exp.UnixToTime(this=expression.expressions[0])
+        return exp.Cast(
+            this=unix_to_time,
+            to=exp.DataType(this=exp.DataType.Type.TIMESTAMP, nested=False, prefix=False),
+        )
+
     return expression
 
 

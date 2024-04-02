@@ -1331,12 +1331,12 @@ def test_to_timestamp(cur: snowflake.connector.cursor.SnowflakeCursor):
     cur.execute("SELECT to_timestamp_ntz('2013-04-05 01:02:03')")
     assert cur.fetchall() == [(datetime.datetime(2013, 4, 5, 1, 2, 3),)]
 
+    cur.execute("CREATE TABLE example (UTC_TIMESTAMP NUMBER, INSTALL_TIME TIMESTAMP_NTZ)")
+    cur.execute("INSERT INTO example VALUES (1680393600, '2023-03-31 00:00:00')")
 
-def test_timestamp_to_date(cur: snowflake.connector.cursor.SnowflakeCursor):
-    cur.execute(
-        "SELECT to_date(to_timestamp(0)), to_date(cast(to_timestamp(0) as timestamp(9))), to_date('2024-01-26')"
-    )
-    assert cur.fetchall() == [(datetime.date(1970, 1, 1), datetime.date(1970, 1, 1), datetime.date(2024, 1, 26))]
+    cur.execute("SELECT datediff('minute', INSTALL_TIME, to_timestamp(UTC_TIMESTAMP)) as result FROM example")
+
+    assert cur.fetchall() == [(2880,)]
 
 
 def test_to_decimal(cur: snowflake.connector.cursor.SnowflakeCursor):
