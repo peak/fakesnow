@@ -947,8 +947,14 @@ def to_date(expression: exp.Expression) -> exp.Expression:
         and isinstance(expression.this, str)
         and expression.this.upper() == "TO_DATE"
     ):
+        e = expression.expressions[0]
+
+        # NOTE(selman): There're cases where DBT generated queries would have `TO_DATE(TO_DATE(...))`.
+        # Re-run same transformation on the inner expression.
+        e = to_date(e)
+
         return exp.Cast(
-            this=expression.expressions[0],
+            this=e,
             to=exp.DataType(this=exp.DataType.Type.DATE, nested=False, prefix=False),
         )
     return expression
