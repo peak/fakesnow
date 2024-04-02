@@ -46,6 +46,7 @@ from fakesnow.transforms import (
     to_decimal,
     to_timestamp,
     to_timestamp_ntz,
+    to_variant,
     trim_cast_varchar,
     try_parse_json,
     try_to_decimal,
@@ -1058,4 +1059,26 @@ def test_json_extract_in_string_literals() -> None:
         .transform(json_extract_in_string_literals)
         .sql(dialect="duckdb")
         == "SELECT data -> '$.stuff' IN ('other', 5, 10)"
+    )
+
+
+def test_to_variant() -> None:
+    assert (
+        sqlglot.parse_one(
+            "SELECT TO_VARIANT(OBJECT_CONSTRUCT('a',1,'b','BBBB','c',null))",
+            read="snowflake",
+        )
+        .transform(to_variant)
+        .sql(dialect="duckdb")
+        == "SELECT TO_JSON({'a': 1, 'b': 'BBBB', 'c': NULL})"
+    )
+
+    assert (
+        sqlglot.parse_one(
+            "SELECT TO_VARIANT('str')",
+            read="snowflake",
+        )
+        .transform(to_variant)
+        .sql(dialect="duckdb")
+        == "SELECT TO_JSON('str')"
     )

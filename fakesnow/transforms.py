@@ -200,7 +200,6 @@ def datediff_string_literal_timestamp_cast(expression: exp.Expression) -> exp.Ex
     return new_datediff
 
 
-
 def dateadd_date_cast(expression: exp.Expression) -> exp.Expression:
     """Cast result of DATEADD to DATE if the given expression is a cast to DATE
        and unit is either DAY, WEEK, MONTH or YEAR to mimic Snowflake's DATEADD
@@ -1142,6 +1141,29 @@ def current_timestamp(expression: exp.Expression) -> exp.Expression:
             this=expression,
             to=exp.DataType(this=exp.DataType.Type.TIMESTAMP, nested=False, prefix=False),
         )
+
+    return expression
+
+
+def to_variant(expression: exp.Expression) -> exp.Expression:
+    """Convert to_variant to to_json.
+    See https://docs.snowflake.com/en/sql-reference/functions/to_variant
+
+    There're not any type on DuckDB to resemble VARIANT. VARIANT can store
+    arbitrary data types including structured data. Regardless on underlyin
+    data type, VARIANT columns enable structured access;
+    SELECT TO_VARIANT('hello') AS D, TYPEOF(D), D:SOMEFIELD;
+        D       	 TYPEOF(D) 	 D:SOMEFIELD
+        "hello" 	 VARCHAR
+
+
+    No equivalent in DuckDB, so we use JSON instead.
+    """
+
+    if isinstance(expression, exp.Anonymous) and expression.this.upper() == "TO_VARIANT":
+        new = expression.copy()
+        new.args["this"] = "TO_JSON"
+        return new
 
     return expression
 

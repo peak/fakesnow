@@ -1673,6 +1673,28 @@ def test_json_extract_eq_string_literal(dcur: snowflake.connector.cursor.DictCur
     ]
 
 
+def test_to_variant(conn: snowflake.connector.SnowflakeConnection):
+    with conn.cursor() as cur:
+        cur.execute("create or replace table to_variant(id number, name varchar);")
+        cur.execute("insert into to_variant(id, name) values (1, 'name 1'), (2, 'name 2');")
+        cur.execute("select to_variant(object_construct('id', id, 'name', name)) from to_variant;")
+
+        assert indent(cur.fetchall()) == [
+            ('{\n  "id": 1,\n  "name": "name 1"\n}',),
+            ('{\n  "id": 2,\n  "name": "name 2"\n}',),
+        ]
+
+    with conn.cursor() as cur:
+        cur.execute("create or replace table to_variant(id number, name varchar);")
+        cur.execute("insert into to_variant(id, name) values (1, 'name 1'), (2, 'name 2');")
+        cur.execute("select to_variant(id), to_variant(name) from to_variant;")
+
+        assert cur.fetchall() == [
+            ("1", '"name 1"'),
+            ("2", '"name 2"'),
+        ]
+
+
 def indent(rows: Sequence[tuple] | Sequence[dict]) -> list[tuple]:
     # indent duckdb json strings tuple values to match snowflake json strings
     assert isinstance(rows[0], tuple)
