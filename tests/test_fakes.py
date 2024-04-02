@@ -523,7 +523,9 @@ def test_describe_table(dcur: snowflake.connector.cursor.DictCursor):
         {"name": "XSMALLINT", "type": "NUMBER(38,0)", **common},
         {"name": "XTINYINT", "type": "NUMBER(38,0)", **common},
         {"name": "XBYTEINT", "type": "NUMBER(38,0)", **common},
-        {"name": "XVARCHAR20", "type": "VARCHAR(20)", **common},
+        # TODO(selman): Disabled text length extraction.
+        # {"name": "XVARCHAR20", "type": "VARCHAR(20)", **common},
+        {"name": "XVARCHAR20", "type": "VARCHAR(16777216)", **common},
         {"name": "XVARCHAR", "type": "VARCHAR(16777216)", **common},
         {"name": "XTEXT", "type": "VARCHAR(16777216)", **common},
         {"name": "XTIMESTAMP", "type": "TIMESTAMP_NTZ(9)", **common},

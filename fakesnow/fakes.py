@@ -196,7 +196,16 @@ class FakeSnowflakeCursor:
             .transform(transforms.timestamp_ntz_ns)
             .transform(transforms.float_to_double)
             .transform(transforms.integer_precision)
-            .transform(transforms.extract_text_length)
+            # TODO(selman): Broken, failes on CTAS queries with CASTs;
+            # CREATE TABLE SOME_TABLE AS (
+            #   SELECT
+            #     R1 AS C1,
+            #     CAST(CAST(C1 AS TEXT) || '-' || CAST(C2 AS TEXT) AS TEXT) AS KEY_ID
+            #     CAST(C1 AS TEXT) || '-' || CAST(C2 AS TEXT) AS OTHER_KEY_ID
+            #   FROM
+            #     RAW_DATA
+            # )
+            # .transform(transforms.extract_text_length)
             .transform(transforms.sample)
             .transform(transforms.array_size)
             .transform(transforms.random)
