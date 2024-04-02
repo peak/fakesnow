@@ -1214,3 +1214,79 @@ def show_keys(
                 raise NotImplementedError(f"SHOW PRIMARY KEYS with {scope_kind} not yet supported")
         return sqlglot.parse_one(statement)
     return expression
+
+
+def json_extract_in_string_literals(expression: exp.Expression) -> exp.Expression:
+    """Snowflake does implicit casting on JSON extract value on an IN caluse;
+
+    Snowflake;
+        SELECT
+            {'k': '10'::VARCHAR} AS d,
+            d:k IN (10, 50) AS IN1,
+            d:k IN ('10', '50') as IN2;
+
+        IN1: TRUE
+        IN2: TRUE
+
+
+        SELECT
+            {'k': '10'::NUMBER} AS d,
+            d:k IN (10, 'a') AS IN1,
+            d:k IN ('10', 'b') as IN2;
+
+        IN1: TRUE
+        IN2: TRUE
+
+    DuckDB;
+        SELECT
+            TO_JSON({'k': '10'}) AS D,
+            ( D -> '$.k') in (10, 50) as INN1,
+            ( D -> '$.k') in ('10', '50') as INN2
+        INN1: TRUE
+        INN2: FALSE
+
+        SELECT
+            TO_JSON({'k': 10}) AS D,
+            ( D -> '$.k') in (10, 50) as INN1,
+            ( D -> '$.k') in ('10', '50') as INN2;
+
+        INN1: TRUE
+        INN2: TRUE
+
+
+    It seems that Snowflake does pairwise casting on the values in the IN
+    clause, DuckDB is a little weird, probably due to string's extracted quoted
+    via `->` operator thus FALSE in first case of the first query.
+
+    To keep things simple, if all values in IN clause are string literals, we
+    can extract JSON value as string/VARCHAR to achive similar behaviour.
+
+    SELECT
+        TO_JSON({'k': '10'}) AS D,
+        ( D ->> '$.k') in (10, 50) as INN1,
+        ( D ->> '$.k') in ('10', '50') as INN2;
+
+    SELECT
+        TO_JSON({'k': 10}) AS D,
+        ( D ->> '$.k') in (10, 50) as INN1,
+        ( D ->> '$.k') in ('10', '50') as INN2;
+    """
+
+    if not isinstance(expression, exp.In):
+        return expression
+
+    left = expression.this
+    if not (
+        isinstance(left, exp.JSONExtract)
+        and (je := left)
+        and (path := je.expression)
+        and isinstance(path, exp.JSONPath)
+    ):
+        return expression
+
+    all_string_literal = all(isinstance(e, exp.Literal) and e.is_string for e in (expression.expressions))
+    if not all_string_literal:
+        return expression
+
+    json_extract_scalar = exp.JSONExtractScalar(this=je.this, expression=path)
+    return exp.In(this=json_extract_scalar, expressions=expression.expressions)

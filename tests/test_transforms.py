@@ -25,6 +25,7 @@ from fakesnow.transforms import (
     integer_precision,
     json_extract_cased_as_varchar,
     json_extract_cast_as_varchar,
+    json_extract_in_string_literals,
     json_extract_precedence,
     object_construct,
     random,
@@ -630,4 +631,34 @@ def test_values_columns() -> None:
     assert (
         sqlglot.parse_one("INSERT INTO cities VALUES ('Amsterdam', 1)").transform(values_columns).sql()
         == "INSERT INTO cities VALUES ('Amsterdam', 1)"
+    )
+
+
+def test_json_extract_in_string_literals() -> None:
+    assert (
+        sqlglot.parse_one("SELECT data:stuff in ('other')", read="snowflake")
+        .transform(json_extract_in_string_literals)
+        .sql(dialect="duckdb")
+        == "SELECT data ->> '$.stuff' IN ('other')"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT data:stuff in ('other', 'another')", read="snowflake")
+        .transform(json_extract_in_string_literals)
+        .sql(dialect="duckdb")
+        == "SELECT data ->> '$.stuff' IN ('other', 'another')"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT data:stuff in (5, 10)", read="snowflake")
+        .transform(json_extract_in_string_literals)
+        .sql(dialect="duckdb")
+        == "SELECT data -> '$.stuff' IN (5, 10)"
+    )
+
+    assert (
+        sqlglot.parse_one("SELECT data:stuff in ('other', 5, 10)", read="snowflake")
+        .transform(json_extract_in_string_literals)
+        .sql(dialect="duckdb")
+        == "SELECT data -> '$.stuff' IN ('other', 5, 10)"
     )

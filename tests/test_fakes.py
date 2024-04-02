@@ -1447,6 +1447,19 @@ def test_write_pandas_dict_different_keys(conn: snowflake.connector.SnowflakeCon
         assert indent(cur.fetchall()) == [('{\n  "k": "v1"\n}',), ('{\n  "k2": [\n    "v\'2",\n    "v\\"3"\n  ]\n}',)]
 
 
+def test_json_extract_in_string_literals(dcur: snowflake.connector.cursor.SnowflakeCursor):
+    dcur.execute(""" SELECT PARSE_JSON('{"k": "100"}') AS d, d:k IN ('100', '200') as r1, d:k IN (100, 200) as r2 """)
+    rows = dcur.fetchall()
+
+    assert dindent(rows) == [
+        {
+            "D": '{\n  "k": "100"\n}',
+            "R1": True,
+            "R2": True,
+        }
+    ]
+
+
 def indent(rows: Sequence[tuple] | Sequence[dict]) -> list[tuple]:
     # indent duckdb json strings tuple values to match snowflake json strings
     assert isinstance(rows[0], tuple)
