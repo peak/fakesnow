@@ -1425,13 +1425,13 @@ def json_extract_eq_string_literal(expression: exp.Expression) -> exp.Expression
     left = expression.left
     right = expression.right
 
-    # <json-extact> = <string-literal>
+    # <json-extract> = <string-literal>
     if is_json_extract(left) and isinstance(right, exp.Literal) and right.is_string:
         json_extract_scalar = exp.Paren(this=to_json_extract_scalar(cast(exp.JSONExtract, left)))
 
         return exp.EQ(this=json_extract_scalar, expression=right)
 
-    # <string-literal> = <json-extact>
+    # <string-literal> = <json-extract>
     elif is_json_extract(right) and isinstance(left, exp.Literal) and left.is_string:
         json_extract_scalar = exp.Paren(this=to_json_extract_scalar(cast(exp.JSONExtract, right)))
 
@@ -1441,7 +1441,7 @@ def json_extract_eq_string_literal(expression: exp.Expression) -> exp.Expression
 
 
 def json_extract_in_string_literals(expression: exp.Expression) -> exp.Expression:
-    """Snowflake does implicit casting on JSON extract value on an IN caluse;
+    """Snowflake does implicit casting on JSON extract value on an IN clause;
 
     Snowflake;
         SELECT
@@ -1483,7 +1483,7 @@ def json_extract_in_string_literals(expression: exp.Expression) -> exp.Expressio
     via `->` operator thus FALSE in first case of the first query.
 
     To keep things simple, if all values in IN clause are string literals, we
-    can extract JSON value as string/VARCHAR to achive similar behaviour.
+    can extract JSON value as string/VARCHAR to achieve similar behaviour.
 
     SELECT
         TO_JSON({'k': '10'}) AS D,
@@ -1514,3 +1514,13 @@ def json_extract_in_string_literals(expression: exp.Expression) -> exp.Expressio
 
     json_extract_scalar = exp.JSONExtractScalar(this=je.this, expression=path)
     return exp.In(this=json_extract_scalar, expressions=expression.expressions)
+
+
+def object_agg(expression: exp.Expression) -> exp.Expression:
+    if (
+        isinstance(expression, exp.Anonymous)
+        and isinstance(expression.this, str)
+        and expression.this.upper() == "OBJECT_AGG"
+    ):
+        return exp.Anonymous(this="JSON_GROUP_OBJECT", expressions=expression.expressions)
+    return expression

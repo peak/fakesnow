@@ -1508,6 +1508,20 @@ def test_json_extract_cast_as_varchar(dcur: snowflake.connector.cursor.DictCurso
     assert dcur.fetchall() == [{"C_STR_NUMBER": 100, "C_NUM_NUMBER": 100}]
 
 
+def test_json_group_object(dcur: snowflake.connector.cursor.DictCursor):
+    dcur.execute("create table table1 (id number, key varchar, value varchar)")
+    values = [(1, "a", "1"), (1, "b", "2"), (1, "c", "3"), (2, "e", "1"), (2, "f", "1"), (3, "a", "2")]
+
+    dcur.executemany("insert into table1 values (%s, %s, %s)", values)
+    expected = [
+        {"ID": 1, "OBJ": '{\n  "a": "1",\n  "b": "2",\n  "c": "3"\n}'},
+        {"ID": 2, "OBJ": '{\n  "e": "1",\n  "f": "1"\n}'},
+        {"ID": 3, "OBJ": '{\n  "a": "2"\n}'},
+    ]
+    dcur.execute("select id, object_agg(key, value) as obj from table1 group by 1")
+    assert dindent(dcur.fetchall()) == expected
+
+
 def test_write_pandas_quoted_column_names(conn: snowflake.connector.SnowflakeConnection):
     with conn.cursor(snowflake.connector.cursor.DictCursor) as dcur:
         # colunmn names with spaces
