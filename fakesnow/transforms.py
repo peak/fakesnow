@@ -1515,6 +1515,7 @@ def json_extract_in_string_literals(expression: exp.Expression) -> exp.Expressio
     json_extract_scalar = exp.JSONExtractScalar(this=je.this, expression=path)
     return exp.In(this=json_extract_scalar, expressions=expression.expressions)
 
+
 def object_agg(expression: exp.Expression) -> exp.Expression:
     if (
         isinstance(expression, exp.Anonymous)

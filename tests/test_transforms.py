@@ -831,6 +831,7 @@ def test_trim_cast_varchar() -> None:
         == "SELECT TRIM(CAST(col AS TEXT)) FROM table1"
     )
 
+
 def test_upper_case_unquoted_identifiers() -> None:
     assert (
         sqlglot.parse_one("select name, name as fname from table1").transform(upper_case_unquoted_identifiers).sql()
