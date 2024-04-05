@@ -206,7 +206,7 @@ class FakeSnowflakeCursor:
             .transform(transforms.timestamp_ntz_ns)
             .transform(transforms.float_to_double)
             .transform(transforms.integer_precision)
-            # TODO(selman): Broken, failes on CTAS queries with CASTs;
+            # TODO(selman): Broken, fails on CTAS queries with CASTs;
             # CREATE TABLE SOME_TABLE AS (
             #   SELECT
             #     R1 AS C1,
