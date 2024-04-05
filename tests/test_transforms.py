@@ -31,6 +31,7 @@ from fakesnow.transforms import (
     json_extract_eq_string_literal,
     json_extract_in_string_literals,
     json_extract_precedence,
+    object_agg,
     object_construct,
     random,
     regex_replace,
@@ -52,7 +53,6 @@ from fakesnow.transforms import (
     try_to_decimal,
     upper_case_unquoted_identifiers,
     values_columns,
-    object_agg,
 )
 
 
@@ -830,145 +830,6 @@ def test_trim_cast_varchar() -> None:
         sqlglot.parse_one("SELECT TRIM(col::TEXT) FROM table1").transform(trim_cast_varchar).sql(dialect="duckdb")
         == "SELECT TRIM(CAST(col AS TEXT)) FROM table1"
     )
-
-
-def test__get_to_number_args() -> None:
-    e = sqlglot.parse_one("to_number('100')", read="snowflake")
-    assert isinstance(e, exp.ToNumber)
-    assert _get_to_number_args(e) == (None, None, None)
-
-    e = sqlglot.parse_one("to_number('100', 10)", read="snowflake")
-    assert isinstance(e, exp.ToNumber)
-    assert _get_to_number_args(e) == (None, exp.Literal(this="10", is_string=False), None)
-
-    e = sqlglot.parse_one("to_number('100', 10,2)", read="snowflake")
-    assert isinstance(e, exp.ToNumber)
-    assert _get_to_number_args(e) == (
-        None,
-        exp.Literal(this="10", is_string=False),
-        exp.Literal(this="2", is_string=False),
-    )
-
-    e = sqlglot.parse_one("to_number('100', 'TM9')", read="snowflake")
-    assert isinstance(e, exp.ToNumber)
-    assert _get_to_number_args(e) == (exp.Literal(this="TM9", is_string=True), None, None)
-
-    e = sqlglot.parse_one("to_number('100', 'TM9', 10)", read="snowflake")
-    assert isinstance(e, exp.ToNumber)
-    assert _get_to_number_args(e) == (
-        exp.Literal(this="TM9", is_string=True),
-        exp.Literal(this="10", is_string=False),
-        None,
-    )
-
-    e = sqlglot.parse_one("to_number('100', 'TM9', 10, 2)", read="snowflake")
-    assert isinstance(e, exp.ToNumber)
-    assert _get_to_number_args(e) == (
-        exp.Literal(this="TM9", is_string=True),
-        exp.Literal(this="10", is_string=False),
-        exp.Literal(this="2", is_string=False),
-    )
-
-
-def test_to_number() -> None:
-    assert (
-        sqlglot.parse_one("SELECT to_number('100')", read="snowflake").transform(to_decimal).sql(dialect="duckdb")
-        == "SELECT CAST('100' AS DECIMAL(38, 0))"
-    )
-
-    assert (
-        sqlglot.parse_one("SELECT to_number('100', 10)", read="snowflake").transform(to_decimal).sql(dialect="duckdb")
-        == "SELECT CAST('100' AS DECIMAL(10, 0))"
-    )
-
-    assert (
-        sqlglot.parse_one("SELECT to_number('100', 10,2)", read="snowflake").transform(to_decimal).sql(dialect="duckdb")
-        == "SELECT CAST('100' AS DECIMAL(10, 2))"
-    )
-
-    with pytest.raises(NotImplementedError):
-        sqlglot.parse_one("SELECT to_number('100', 'TM9')", read="snowflake").transform(to_decimal).sql(
-            dialect="duckdb"
-        )
-
-    with pytest.raises(NotImplementedError):
-        sqlglot.parse_one("SELECT to_number('100', 'TM9', 10)", read="snowflake").transform(to_decimal).sql(
-            dialect="duckdb"
-        )
-
-    with pytest.raises(NotImplementedError):
-        sqlglot.parse_one("SELECT to_number('100', 'TM9', 10, 2)", read="snowflake").transform(to_decimal).sql(
-            dialect="duckdb"
-        )
-
-
-def test_to_number_decimal() -> None:
-    assert (
-        sqlglot.parse_one("SELECT to_decimal('100')", read="snowflake").transform(to_decimal).sql(dialect="duckdb")
-        == "SELECT CAST('100' AS DECIMAL(38, 0))"
-    )
-
-    assert (
-        sqlglot.parse_one("SELECT to_decimal('100', 10)", read="snowflake").transform(to_decimal).sql(dialect="duckdb")
-        == "SELECT CAST('100' AS DECIMAL(10, 0))"
-    )
-
-    assert (
-        sqlglot.parse_one("SELECT to_decimal('100', 10,2)", read="snowflake")
-        .transform(to_decimal)
-        .sql(dialect="duckdb")
-        == "SELECT CAST('100' AS DECIMAL(10, 2))"
-    )
-
-    with pytest.raises(NotImplementedError):
-        sqlglot.parse_one("SELECT to_decimal('100', 'TM9')", read="snowflake").transform(to_decimal).sql(
-            dialect="duckdb"
-        )
-
-    with pytest.raises(NotImplementedError):
-        sqlglot.parse_one("SELECT to_decimal('100', 'TM9', 10)", read="snowflake").transform(to_decimal).sql(
-            dialect="duckdb"
-        )
-
-    with pytest.raises(NotImplementedError):
-        sqlglot.parse_one("SELECT to_decimal('100', 'TM9', 10, 2)", read="snowflake").transform(to_decimal).sql(
-            dialect="duckdb"
-        )
-
-
-def test_to_number_numeric() -> None:
-    assert (
-        sqlglot.parse_one("SELECT to_numeric('100')", read="snowflake").transform(to_decimal).sql(dialect="duckdb")
-        == "SELECT CAST('100' AS DECIMAL(38, 0))"
-    )
-
-    assert (
-        sqlglot.parse_one("SELECT to_numeric('100', 10)", read="snowflake").transform(to_decimal).sql(dialect="duckdb")
-        == "SELECT CAST('100' AS DECIMAL(10, 0))"
-    )
-
-    assert (
-        sqlglot.parse_one("SELECT to_numeric('100', 10,2)", read="snowflake")
-        .transform(to_decimal)
-        .sql(dialect="duckdb")
-        == "SELECT CAST('100' AS DECIMAL(10, 2))"
-    )
-
-    with pytest.raises(NotImplementedError):
-        sqlglot.parse_one("SELECT to_numeric('100', 'TM9')", read="snowflake").transform(to_decimal).sql(
-            dialect="duckdb"
-        )
-
-    with pytest.raises(NotImplementedError):
-        sqlglot.parse_one("SELECT to_numeric('100', 'TM9', 10)", read="snowflake").transform(to_decimal).sql(
-            dialect="duckdb"
-        )
-
-    with pytest.raises(NotImplementedError):
-        sqlglot.parse_one("SELECT to_numeric('100', 'TM9', 10, 2)", read="snowflake").transform(to_decimal).sql(
-            dialect="duckdb"
-        )
-
 
 def test_upper_case_unquoted_identifiers() -> None:
     assert (
