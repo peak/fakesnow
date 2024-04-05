@@ -234,6 +234,7 @@ class FakeSnowflakeCursor:
             .transform(transforms.to_variant)
             .transform(transforms.show_users)
             .transform(transforms.create_user)
+            .transform(transforms.object_agg)
         )
         sql = transformed.sql(dialect="duckdb")
         result_sql = None

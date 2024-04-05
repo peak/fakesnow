@@ -52,6 +52,7 @@ from fakesnow.transforms import (
     try_to_decimal,
     upper_case_unquoted_identifiers,
     values_columns,
+    object_agg,
 )
 
 
@@ -1082,3 +1083,9 @@ def test_to_variant() -> None:
         .sql(dialect="duckdb")
         == "SELECT TO_JSON('str')"
     )
+
+
+def test_object_agg() -> None:
+    sql = "SELECT ID, OBJECT_AGG(KEY, VALUE) AS POSTCALC FROM POSTCALC_WITH_UPDATED_AT GROUP BY 1"
+    expected = "SELECT ID, JSON_GROUP_OBJECT(KEY, VALUE) AS POSTCALC FROM POSTCALC_WITH_UPDATED_AT GROUP BY 1"
+    assert sqlglot.parse_one(sql, read="snowflake").transform(object_agg).sql(dialect="duckdb") == expected
